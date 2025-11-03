@@ -4,7 +4,7 @@ contains the prepared data and the R-syntax to the manusctipt titled "Comparing 
 
 ### dataset
 The full dataset is available to academic researchers upon request from the Research Documentation Centre (RDC) at the Centre for Social Sciences, with access restricted to prevent misuse by the tobacco industry.
-The prepared data is in the C19.RDS object.
+The prepared data is in the *C19.RDS* object.
 
 
 ### citation
@@ -13,7 +13,10 @@ If you use this code in your research, please cite this repo and/or the paper as
 
 
 ### dependencies
-see *sessioninfo.txt*
+see *R_sessioninfo.txt*
+
+### results
+see *R_results.txt*
 
 
 ### licence : CC-BY-NC-ND 4.0 
