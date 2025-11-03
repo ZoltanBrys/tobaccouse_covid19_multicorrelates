@@ -1,0 +1,440 @@
+> # ---- ABOUT ----
+> # Title of the manuscript : 
+> #    Comparing correlates of daily tobacco use and COVID-19 vaccination refusal 
+> #    in the working-age Hungarian population
+> # R-Code      : anonymized
+> # Closed      : 3rd of November, 2025  
+> 
+> 
+> # ---- PACKAGES AND ENVIRONMENT ----
+> #preparation
+> rm(list = ls())
+> gc(reset = TRUE)
+          used (Mb) gc trigger  (Mb) max used (Mb)
+Ncells 1655015 88.4    3075898 164.3  1655015 88.4
+Vcells 3994692 30.5   10146329  77.5  3994692 30.5
+> 
+> #packages
+> library(data.table)
+> library(dplyr)
+> 
+> library(car)
+> library(VGAM)
+> library(PRROC) 
+> 
+> sessionInfo()
+R version 4.3.3 (2024-02-29)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 22.04.4 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.10.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.10.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8        LC_COLLATE=C.UTF-8    
+ [5] LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8    LC_PAPER=C.UTF-8       LC_NAME=C             
+ [9] LC_ADDRESS=C           LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Etc/UTC
+tzcode source: system (glibc)
+
+attached base packages:
+[1] splines   stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] PRROC_1.3.1       VGAM_1.1-13       car_3.1-2         carData_3.0-5     dplyr_1.1.4      
+[6] data.table_1.15.0
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.4        R6_2.5.1          tidyselect_1.2.0  magrittr_2.0.3    glue_1.8.0       
+ [6] abind_1.4-5       tibble_3.3.0      pkgconfig_2.0.3   generics_0.1.3    lifecycle_1.0.4  
+[11] cli_3.6.2         fansi_1.0.6       vctrs_0.6.5       withr_3.0.0       compiler_4.3.3   
+[16] rstudioapi_0.15.0 tools_4.3.3       pillar_1.9.0      rlang_1.1.6      
+> 
+> 
+> # ---- LOADING INPUT DATA ----
+> C19 <- as.data.table(readRDS("C19.RDS")) 
+> 
+> yvarnames = paste0("y", 1:2)
+> xvarnames = paste0("x", 1:21)
+> 
+> 
+> # ---- Descriptive statistics ----
+> table2 <- summary(C19)
+> print("Table 2.")
+[1] "Table 2."
+> print(table2) 
+     sorsz                y1              y2               x1             x2              x3       
+ Min.   :20232645   Min.   :0.000   Min.   :0.0000   Min.   :0.00   Min.   :19.00   Min.   :0.000  
+ 1st Qu.:20546413   1st Qu.:0.000   1st Qu.:0.0000   1st Qu.:0.00   1st Qu.:32.00   1st Qu.:0.000  
+ Median :20901360   Median :0.000   Median :0.0000   Median :1.00   Median :43.00   Median :0.000  
+ Mean   :20887377   Mean   :0.289   Mean   :0.2369   Mean   :0.53   Mean   :42.35   Mean   :0.441  
+ 3rd Qu.:21259908   3rd Qu.:1.000   3rd Qu.:0.0000   3rd Qu.:1.00   3rd Qu.:53.00   3rd Qu.:1.000  
+ Max.   :21315133   Max.   :1.000   Max.   :1.0000   Max.   :1.00   Max.   :65.00   Max.   :1.000  
+                                    NA's   :46                                                     
+       x4              x5               x6            x7              x8              x9         
+ Min.   :0.000   Min.   :0.0000   Min.   :0.0   Min.   :1.000   Min.   :0.000   Min.   :-5.5236  
+ 1st Qu.:0.000   1st Qu.:0.0000   1st Qu.:0.0   1st Qu.:2.000   1st Qu.:0.000   1st Qu.:-2.1722  
+ Median :0.000   Median :1.0000   Median :0.5   Median :2.000   Median :0.000   Median :-1.2554  
+ Mean   :0.307   Mean   :0.6492   Mean   :0.5   Mean   :2.634   Mean   :0.303   Mean   :-1.2199  
+ 3rd Qu.:1.000   3rd Qu.:1.0000   3rd Qu.:1.0   3rd Qu.:3.000   3rd Qu.:1.000   3rd Qu.: 0.2338  
+ Max.   :1.000   Max.   :1.0000   Max.   :1.0   Max.   :8.000   Max.   :1.000   Max.   : 3.0686  
+                 NA's   :28                                                                      
+      x10             x11             x12              x13              x14              x15       
+ Min.   :0.000   Min.   :0.000   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000   Min.   :0.000  
+ 1st Qu.:0.000   1st Qu.:0.000   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.000  
+ Median :1.000   Median :1.000   Median :1.0000   Median :0.0000   Median :0.0000   Median :0.000  
+ Mean   :0.686   Mean   :0.746   Mean   :0.5524   Mean   :0.1728   Mean   :0.3965   Mean   :0.434  
+ 3rd Qu.:1.000   3rd Qu.:1.000   3rd Qu.:1.0000   3rd Qu.:0.0000   3rd Qu.:1.0000   3rd Qu.:1.000  
+ Max.   :1.000   Max.   :1.000   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000   Max.   :1.000  
+                                 NA's   :26       NA's   :51       NA's   :29                      
+      x16             x17              x18              x19              x20             x21       
+ Min.   :14.53   Min.   :0.0000   Min.   : 1.000   Min.   :0.0000   Min.   :1.000   Min.   :1.000  
+ 1st Qu.:22.53   1st Qu.:0.0000   1st Qu.: 5.000   1st Qu.:0.0000   1st Qu.:2.000   1st Qu.:2.000  
+ Median :26.03   Median :0.0000   Median : 7.000   Median :1.0000   Median :3.000   Median :3.000  
+ Mean   :26.78   Mean   :0.1081   Mean   : 6.163   Mean   :0.5239   Mean   :3.254   Mean   :3.163  
+ 3rd Qu.:29.41   3rd Qu.:0.0000   3rd Qu.: 8.000   3rd Qu.:1.0000   3rd Qu.:4.000   3rd Qu.:5.000  
+ Max.   :54.69   Max.   :1.0000   Max.   :10.000   Max.   :1.0000   Max.   :5.000   Max.   :5.000  
+ NA's   :85      NA's   :19       NA's   :25       NA's   :38       NA's   :84      NA's   :93     
+> 
+> 
+> # ---- Data Imputation ----
+> #y1,y2 are not imputed, edu coding of x3,x4 considered
+> C19_imp <- C19 %>%
++   filter(!is.na(y1) & !is.na(y2)) %>%
++   mutate(edu_group = case_when(
++     x3 == 0 & x4 == 0 ~ "alapfoku",
++     x3 == 1 & x4 == 0 ~ "kozepfoku",
++     x3 == 1 & x4 == 1 ~ "felsofoku",
++   )) %>%
++   group_by(edu_group) %>%
++   mutate(across(all_of(xvarnames), ~ ifelse(is.na(.), median(., na.rm = TRUE), .))) %>%
++   ungroup() %>%
++   select(-edu_group) %>%
++   select(-sorsz) #remove uid
+> #remove C19, not to analyze accidentaly
+> rm(C19)
+> 
+> 
+> # ---- Scaling, for comparable AMEs ----
+> C19_imp <- C19_imp %>%
++   mutate(across(.cols = setdiff(names(.)[sapply(., is.numeric)], c("y1", "y2")),
++                 .fns = ~ as.numeric(scale(.))))  
+> 
+> 
+> # ---- Multivariate modeling ----  
+> #y1~y2
+> print("Phi(y1~y2)=")
+[1] "Phi(y1~y2)="
+> cor(C19_imp$y1, C19_imp$y2)
+[1] 0.08758003
+> 
+> print("JI(y1~y2)=")
+[1] "JI(y1~y2)="
+> jaccard_index <- function(x, y) { sum(x & y) / sum(x | y) }
+> jaccard_index(C19_imp$y1, C19_imp$y2)
+[1] 0.1943128
+> 
+> #VIF  
+> lm_vif_y1 <- glm(y1 ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
++                    x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + x21, 
++                  data = C19_imp, 
++                  family = binomial)
+> 
+> lm_vif_y2 <- glm(y2 ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
++                    x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + x21, 
++                  data = C19_imp, 
++                  family = binomial)
+> 
+> vif_y1 <- car::vif(lm_vif_y1)
+> vif_y2 <- car::vif(lm_vif_y2)
+> 
+> print("VIFs")
+[1] "VIFs"
+> summary(cbind(vif_y1, vif_y2))
+     vif_y1          vif_y2     
+ Min.   :1.058   Min.   :1.081  
+ 1st Qu.:1.155   1st Qu.:1.162  
+ Median :1.251   Median :1.260  
+ Mean   :1.636   Mean   :1.657  
+ 3rd Qu.:1.822   3rd Qu.:1.836  
+ Max.   :3.938   Max.   :3.929  
+> 
+> # def y
+> y_mat <- as.matrix(C19_imp[, c("y1", "y2")])
+> 
+> # def null_mod
+> null_mod <-  vglm(
++   y_mat ~ 1,
++   family = binomialff(multiple.responses = TRUE),
++   data = C19_imp
++ )
+> print("Null modell:")
+[1] "Null modell:"
+> summary(null_mod)
+
+Call:
+vglm(formula = y_mat ~ 1, family = binomialff(multiple.responses = TRUE), 
+    data = C19_imp)
+
+Coefficients: 
+              Estimate Std. Error z value Pr(>|z|)    
+(Intercept):1 -0.88857    0.07125  -12.47   <2e-16 ***
+(Intercept):2 -1.16977    0.07615  -15.36   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Names of linear predictors: logitlink(E[y1]), logitlink(E[y2])
+
+Residual deviance: 2195.882 on 1906 degrees of freedom
+
+Log-likelihood: -1097.941 on 1906 degrees of freedom
+
+Number of Fisher scoring iterations: 1 
+
+No Hauck-Donner effect found in any of the estimates
+
+> 
+> 
+> #full mod
+> fit_mv_logit_vgam <- VGAM::vglm(
++   y_mat ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
++     x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + x21,
++   family = binomialff(multiple.responses = TRUE),
++   data = C19_imp
++ )
+> print("Full modell:")
+[1] "Full modell:"
+> summary(fit_mv_logit_vgam)
+
+Call:
+VGAM::vglm(formula = y_mat ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + 
+    x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + 
+    x18 + x19 + x20 + x21, family = binomialff(multiple.responses = TRUE), 
+    data = C19_imp)
+
+Coefficients: 
+               Estimate Std. Error z value Pr(>|z|)    
+(Intercept):1 -1.107231   0.086083 -12.862  < 2e-16 ***
+(Intercept):2 -1.822196   0.123059 -14.807  < 2e-16 ***
+x1:1           0.008106   0.088040   0.092 0.926645    
+x1:2           0.168860   0.105404   1.602 0.109149    
+x2:1           0.238103   0.105181   2.264 0.023590 *  
+x2:2          -0.067331   0.123191  -0.547 0.584682    
+x3:1          -0.373087   0.093550  -3.988 6.66e-05 ***
+x3:2          -0.156831   0.112326  -1.396 0.162651    
+x4:1          -0.753398   0.111499  -6.757 1.41e-11 ***
+x4:2          -0.289005   0.133082  -2.172 0.029883 *  
+x5:1          -0.023907   0.089459  -0.267 0.789284    
+x5:2           0.159344   0.103130   1.545 0.122328    
+x6:1           0.099740   0.109085   0.914 0.360539    
+x6:2           0.075952   0.133884   0.567 0.570512    
+x7:1          -0.084404   0.112633  -0.749 0.453636    
+x7:2          -0.194349   0.129402  -1.502 0.133121    
+x8:1           0.042497   0.117898   0.360 0.718504    
+x8:2          -0.045901   0.142473  -0.322 0.747325    
+x9:1          -0.104458   0.087350  -1.196 0.231754    
+x9:2           0.266911   0.105715   2.525 0.011576 *  
+x10:1         -0.215599   0.153297  -1.406 0.159602    
+x10:2         -0.101981   0.179849  -0.567 0.570689    
+x11:1          0.209850   0.153114   1.371 0.170516    
+x11:2          0.182319   0.179151   1.018 0.308829    
+x12:1         -0.019768   0.080672  -0.245 0.806425    
+x12:2         -0.084570   0.095582  -0.885 0.376272    
+x13:1          0.093918   0.079464   1.182 0.237249    
+x13:2         -0.039036   0.092453  -0.422 0.672863    
+x14:1          0.108597   0.086330   1.258 0.208417    
+x14:2          0.176402   0.100560   1.754 0.079398 .  
+x15:1         -0.130765   0.089459  -1.462 0.143815    
+x15:2         -0.017757   0.105780  -0.168 0.866688    
+x16:1         -0.287662   0.089004  -3.232 0.001229 ** 
+x16:2         -0.071531   0.100750  -0.710 0.477712    
+x17:1         -0.038791   0.083631  -0.464 0.642766    
+x17:2          0.322462   0.091970   3.506 0.000455 ***
+x18:1          0.046168   0.083501   0.553 0.580330    
+x18:2         -0.189615   0.094680  -2.003 0.045210 *  
+x19:1         -0.103541   0.084046  -1.232 0.217968    
+x19:2          0.237926   0.099004   2.403 0.016253 *  
+x20:1          0.711391   0.094984   7.490 6.91e-14 ***
+x20:2         -0.341998   0.106021  -3.226 0.001256 ** 
+x21:1         -0.082688   0.089542  -0.923 0.355767    
+x21:2          1.496061   0.125349  11.935  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Names of linear predictors: logitlink(E[y1]), logitlink(E[y2])
+
+Residual deviance: 1711.872 on 1864 degrees of freedom
+
+Log-likelihood: -855.9358 on 1864 degrees of freedom
+
+Number of Fisher scoring iterations: 5 
+
+No Hauck-Donner effect found in any of the estimates
+
+> 
+> #aORs
+> se <- sqrt(diag(vcov(fit_mv_logit_vgam)))
+> 
+> log_odds_vec <- coef(fit_mv_logit_vgam)
+> lower <- log_odds_vec - 1.96 * se
+> upper <- log_odds_vec + 1.96 * se
+> 
+> aor_ci <- data.frame(
++   aOR = round(exp(log_odds_vec), 2),
++   aOR_lower = round(exp(lower), 2),
++   aOR_upper = round(exp(upper), 2)
++ )
+> aor_ci$str=paste0(aor_ci$aOR,"(",aor_ci$aOR_lower,"–", aor_ci$aOR_upper,")")
+> 
+> print("Adjusted Odds Ratios with 95% CI:")
+[1] "Adjusted Odds Ratios with 95% CI:"
+> print(aor_ci)
+               aOR aOR_lower aOR_upper             str
+(Intercept):1 0.33      0.28      0.39 0.33(0.28–0.39)
+(Intercept):2 0.16      0.13      0.21 0.16(0.13–0.21)
+x1:1          1.01      0.85      1.20  1.01(0.85–1.2)
+x1:2          1.18      0.96      1.46 1.18(0.96–1.46)
+x2:1          1.27      1.03      1.56 1.27(1.03–1.56)
+x2:2          0.93      0.73      1.19 0.93(0.73–1.19)
+x3:1          0.69      0.57      0.83 0.69(0.57–0.83)
+x3:2          0.85      0.69      1.07 0.85(0.69–1.07)
+x4:1          0.47      0.38      0.59 0.47(0.38–0.59)
+x4:2          0.75      0.58      0.97 0.75(0.58–0.97)
+x5:1          0.98      0.82      1.16 0.98(0.82–1.16)
+x5:2          1.17      0.96      1.44 1.17(0.96–1.44)
+x6:1          1.10      0.89      1.37  1.1(0.89–1.37)
+x6:2          1.08      0.83      1.40  1.08(0.83–1.4)
+x7:1          0.92      0.74      1.15 0.92(0.74–1.15)
+x7:2          0.82      0.64      1.06 0.82(0.64–1.06)
+x8:1          1.04      0.83      1.31 1.04(0.83–1.31)
+x8:2          0.96      0.72      1.26 0.96(0.72–1.26)
+x9:1          0.90      0.76      1.07  0.9(0.76–1.07)
+x9:2          1.31      1.06      1.61 1.31(1.06–1.61)
+x10:1         0.81      0.60      1.09  0.81(0.6–1.09)
+x10:2         0.90      0.63      1.28  0.9(0.63–1.28)
+x11:1         1.23      0.91      1.67 1.23(0.91–1.67)
+x11:2         1.20      0.84      1.70   1.2(0.84–1.7)
+x12:1         0.98      0.84      1.15 0.98(0.84–1.15)
+x12:2         0.92      0.76      1.11 0.92(0.76–1.11)
+x13:1         1.10      0.94      1.28  1.1(0.94–1.28)
+x13:2         0.96      0.80      1.15  0.96(0.8–1.15)
+x14:1         1.11      0.94      1.32 1.11(0.94–1.32)
+x14:2         1.19      0.98      1.45 1.19(0.98–1.45)
+x15:1         0.88      0.74      1.05 0.88(0.74–1.05)
+x15:2         0.98      0.80      1.21  0.98(0.8–1.21)
+x16:1         0.75      0.63      0.89 0.75(0.63–0.89)
+x16:2         0.93      0.76      1.13 0.93(0.76–1.13)
+x17:1         0.96      0.82      1.13 0.96(0.82–1.13)
+x17:2         1.38      1.15      1.65 1.38(1.15–1.65)
+x18:1         1.05      0.89      1.23 1.05(0.89–1.23)
+x18:2         0.83      0.69      1.00    0.83(0.69–1)
+x19:1         0.90      0.76      1.06  0.9(0.76–1.06)
+x19:2         1.27      1.04      1.54 1.27(1.04–1.54)
+x20:1         2.04      1.69      2.45 2.04(1.69–2.45)
+x20:2         0.71      0.58      0.87 0.71(0.58–0.87)
+x21:1         0.92      0.77      1.10  0.92(0.77–1.1)
+x21:2         4.46      3.49      5.71 4.46(3.49–5.71)
+> 
+> #AMEs
+> pred <- predict(fit_mv_logit_vgam, type = "response")  
+> coefs <- coef(fit_mv_logit_vgam, matrix = TRUE) 
+> avg_grad <- colMeans(pred * (1 - pred))
+> ame_matrix <- sweep(coefs, 2, avg_grad, FUN = "*")
+> ame_xvars <- ame_matrix[rownames(coefs) %in% xvarnames, , drop = FALSE]
+> print("AMEs:")
+[1] "AMEs:"
+> print(round(ame_xvars,3))
+    logitlink(E[y1]) logitlink(E[y2])
+x1             0.001            0.021
+x2             0.040           -0.008
+x3            -0.063           -0.019
+x4            -0.128           -0.036
+x5            -0.004            0.020
+x6             0.017            0.009
+x7            -0.014           -0.024
+x8             0.007           -0.006
+x9            -0.018            0.033
+x10           -0.037           -0.013
+x11            0.036            0.023
+x12           -0.003           -0.010
+x13            0.016           -0.005
+x14            0.018            0.022
+x15           -0.022           -0.002
+x16           -0.049           -0.009
+x17           -0.007            0.040
+x18            0.008           -0.023
+x19           -0.018            0.029
+x20            0.121           -0.042
+x21           -0.014            0.185
+> 
+> #LL
+> ll_null <- logLik(null_mod)
+> ll_full <- logLik(fit_mv_logit_vgam)
+> 
+> df_null <- length(coef(null_mod))
+> df_full <- length(coef(fit_mv_logit_vgam))
+> 
+> LR_stat <- 2 * (as.numeric(ll_full) - as.numeric(ll_null))  
+> df_diff <- df_full - df_null
+> 
+> pval <- pchisq(LR_stat, df = df_diff, lower.tail = FALSE)
+> 
+> print("Likelihood-ratio test:")
+[1] "Likelihood-ratio test:"
+> print(paste("LogLik null model:", round(as.numeric(ll_null), 2)))
+[1] "LogLik null model: -1097.94"
+> print(paste("LogLik full model:", round(as.numeric(ll_full), 2)))
+[1] "LogLik full model: -855.94"
+> print(paste("LR Chi-square:", round(LR_stat, 2)))
+[1] "LR Chi-square: 484.01"
+> print(paste("df:", df_diff))
+[1] "df: 42"
+> print(paste("p-value:", signif(pval, 3)))
+[1] "p-value: 1.68e-76"
+> 
+> #AIC
+> print("AIC-null-modell:")
+[1] "AIC-null-modell:"
+> print(round(AIC(null_mod),2))
+[1] 2199.88
+> print("AIC-full-modell:")
+[1] "AIC-full-modell:"
+> print(round(AIC(fit_mv_logit_vgam),2))
+[1] 1799.87
+> 
+> #ROC-AUC and PR-AUC
+> pred_y1 <- pred[, 1]
+> pred_y2 <- pred[, 2]
+> 
+> prroc_metrics <- function(scores, labels) {
++   s0 <- scores[labels == 0]  # negatives
++   s1 <- scores[labels == 1]  # positives
++   
++   # IMPORTANT: for ROC, pass POSITIVES FIRST
++   roc <- PRROC::roc.curve(scores.class0 = s1, scores.class1 = s0, curve = TRUE)
++   pr  <- PRROC::pr.curve(scores.class0 = s0, scores.class1 = s1, curve = TRUE)
++   
++   list(roc_auc = roc$auc, pr_auc = pr$auc.integral,
++        pr_curve = pr, roc_curve = roc)
++ }
+> 
+> m1 <- prroc_metrics(pred_y1, C19_imp$y1)
+> cat("ROC-AUC for y1:", round(m1$roc_auc, 2), "\n")
+ROC-AUC for y1: 0.76 
+> cat("PR-AUC  for y1:", round(m1$pr_auc,  2), "\n")
+PR-AUC  for y1: 0.56 
+> cat("PR-AUC baseline (prevalence) for y1:", round(mean(C19_imp$y1), 2), "\n")
+PR-AUC baseline (prevalence) for y1: 0.29 
+> 
+> m2 <- prroc_metrics(pred_y2, C19_imp$y2)
+> cat("ROC-AUC for y2:", round(m2$roc_auc, 2), "\n")
+ROC-AUC for y2: 0.85 
+> cat("PR-AUC  for y2:", round(m2$pr_auc,  2), "\n")
+PR-AUC  for y2: 0.59 
+> cat("PR-AUC baseline (prevalence) for y2:", round(mean(C19_imp$y2), 2), "\n")
+PR-AUC baseline (prevalence) for y2: 0.24 
+> 
+> stop(paste0("Code run completed on ",  date()) )  
+Error: Code run completed on Mon Nov  3 14:16:31 2025
